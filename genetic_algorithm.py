@@ -298,6 +298,10 @@ def doIt(trg,length):
 
         count += 1
 
+    fout.close()
+    times.close()
+    counts.close()
+    final_exps.close()
 
 """
 Main Main
