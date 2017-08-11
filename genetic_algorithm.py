@@ -17,10 +17,8 @@ choose_two (avg),print_generation (total),print_generation (avg),\
 Expression,Raw Evaluation,Target Value,Number of Generations\n")
 
 
-def doIt(trg, length, data_file):
+def find_target(trg, length, data_file):
     """
-    NOTE: terrible function name, I apologise
-
     This function is just for finding the average time it takes to
     find a specific value for any given setup
     """
@@ -426,6 +424,6 @@ chromosome_length = eval(input("Expression length (odd): "))
 
 for i in range(repititions):
     print("Repitition:", i + 1)
-    doIt(target_value, chromosome_length, data_file)
+    find_target(target_value, chromosome_length, data_file)
 
 data_file.close()
