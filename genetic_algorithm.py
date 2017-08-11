@@ -2,13 +2,26 @@
 import random
 import math
 import time
+import pandas as pd
+import os
+
+data_file = open("Data/genetic_algorithm_data.csv", 'a+')
+
+# Create headers if not already made
+if(os.stat("Data/genetic_algorithm_data.csv").st_size) == 0:
+    data_file.write("Overall Time,random_exp_str (total),\
+random_exp_str (avg),calc_scores (total),calc_scores (avg),\
+calc_percents (total),calc_percents (avg),mutate (total),mutate (avg),\
+cross_chromosomes (total),cross_chromosomes (avg),choose_two (total),\
+choose_two (avg),print_generation (total),print_generation (avg),\
+Expression,Raw Evaluation,Target Value,Number of Generations\n")
 
 
-def doIt(trg,length):
+def doIt(trg,length,data_file):
     """
-    NOTE: terrible function name, I know
+    NOTE: terrible function name, I apologise
 
-    This function is just so I can get the average time it takes to
+    This function is just for finding the average time it takes to
     find a specific value for any given setup
     """
     start_time = time.time()
@@ -22,11 +35,10 @@ def doIt(trg,length):
     # Set mutation rate for random mutations to any character in an expression
     mutation_rate = 0.01
     count = 1
-    fout = open("expressions(BIG_FILE).txt",'w')
-    times = open("time.txt",'a')
-    counts = open("generations.txt",'a')
-    final_exps = open("final_exps.txt",'a')
     operators = ['+', '-', '*', '/']
+
+    fout = open("Data/complete_data(BIG_FILE).txt",'w')
+
     function_times = {
         "random_exp_str": {
             "total": 0,
@@ -85,7 +97,7 @@ def doIt(trg,length):
         return x
 
 
-    def calc_scores(expressions, trg_val, generation_num):
+    def calc_scores(expressions, trg_val, generation_num, data_file):
         """
         Calculates the fitness score based on it's proximity to the
         target
@@ -101,35 +113,42 @@ def doIt(trg,length):
 
             if round(eval(expression)) == trg_val:
 
+                # SIGNALS PROGRAM END
+
                 # Prints runtime details and various data about the execution
-                fout.write("Done\nGeneration - {0}\nExpression - \
-                {1}\nRaw value - {2}\nRounded value - {3}\nTarget - \
-                {4}\nRuntime - {5} seconds\n".format(generation_num,
+                fout.write("""Done\nGeneration - {0}\nExpression -
+                {1}\nRaw value - {2}\nRounded value - {3}\nTarget -
+                {4}\nRuntime - {5} seconds\n""".format(generation_num,
                 expression,eval(expression),round(eval(expression)),
                 target,(time.time()-start_time)))
 
-                # Prints the runtime averages and totals for each func
+                temp_df = pd.DataFrame()
+
+                # Stores the overall runtime
+                temp_df["Overall Time"] = pd.Series(time.time() - start_time)
+
+                # Stores the runtime averages and totals for each func
                 for k,v in function_times.items():
-                    times.write(k+" runtime: " +
-                    "\n\ttotal: " + str(v["total"]) +
-                    "\n\taverage: " +
-                    str(sum(v["indv_times"]) / len(v["indv_times"])) + "\n")
-                # Prints the overall runtime
-                times.write("Overall runtime: " +
-                str(time.time() - start_time)+'\n')
+                    temp_df[str(k+" (total)")] = pd.Series(v["total"])
+                    temp_df[str(k+" (avg)")] = pd.Series(sum(v["indv_times"])
+                        / len(v["indv_times"]))
 
-                # Prints to the count file and stores the final expression
-                counts.write(str(generation_num)+'\n')
-                final_exps.write(str(expression) + ' = ' +
-                 str(round(eval(expression))) + '\n')
+                # Stores the count, final expression, evaluation, and trg_val
+                temp_df["Expression"] = pd.Series(expression)
+                temp_df["Raw Evaluation"] = pd.Series(eval(expression))
+                temp_df["Target Value"] = pd.Series(trg_val)
+                temp_df["Number of Generations"] = pd.Series(generation_num)
 
-                print("Done\nGeneration - {0}\nExpression - \
-                {1}\nRaw value - {2}\nRounded value - {3}\nTarget - \
-                {4}\nRuntime - {5} seconds\n".format(generation_num,
+                temp_df.to_csv(data_file, header=False, index=False)
+
+                print("""Done\nGeneration - {0}\nExpression -
+                {1}\nRaw value - {2}\nRounded value - {3}\nTarget -
+                {4}\nRuntime - {5} seconds\n""".format(generation_num,
                 expression,eval(expression),round(eval(expression)),
                 target,(time.time()-start_time)))
 
                 return True
+
             else:
                 scores.append(1/abs(trg_val-eval(expression)))
 
@@ -137,6 +156,7 @@ def doIt(trg,length):
         function_times["calc_scores"]["total"] += time.time()-func_start
         function_times["calc_scores"]["indv_times"].append(time.time()-func_start)
         return scores
+
 
     def calc_percents(list_of_scores):
         """
@@ -277,6 +297,7 @@ def doIt(trg,length):
         function_times["choose_two"]["indv_times"].append(time.time()-func_start)
         return pairs
 
+
     def print_generation(generation,gen_count):
         func_start = time.time()
 
@@ -304,10 +325,10 @@ def doIt(trg,length):
         function_times["print_generation"]["total"] += time.time()-func_start
         function_times["print_generation"]["indv_times"].append(time.time()-func_start)
 
+
     """
     Algorithm Main
     """
-
 
     start_exps = [[]]
     done = False
@@ -315,9 +336,10 @@ def doIt(trg,length):
     for i in range(40):
         start_exps[0].append(random_exp_str(chrom_len))
 
-    start_exps.append(calc_scores(start_exps[0],target,count))
+    start_exps.append(calc_scores(start_exps[0],target,count,data_file))
 
     if start_exps[1] == True:
+        fout.close()
         return
 
     start_exps.append(calc_percents(start_exps[1]))
@@ -346,9 +368,10 @@ def doIt(trg,length):
 
         # Calculate the scores of this newly made generation
         #w/out mutations
-        new_gen.append(calc_scores(new_gen[0],target,count))
+        new_gen.append(calc_scores(new_gen[0],target,count,data_file))
 
         if new_gen[1] == True:
+            fout.close()
             return
 
         # Make new layer for expression percentages
@@ -369,9 +392,10 @@ def doIt(trg,length):
             new_gen[0][i] = temp[0]
 
         # Recalc scores after mutations
-        new_gen[1] = calc_scores(new_gen[0],target,count)
+        new_gen[1] = calc_scores(new_gen[0],target,count,data_file)
 
         if new_gen[1] == True:
+            fout.close()
             return
 
 
@@ -380,10 +404,7 @@ def doIt(trg,length):
 
         count += 1
 
-    fout.close()
-    times.close()
-    counts.close()
-    final_exps.close()
+
 
 """
 Main Main
@@ -398,4 +419,6 @@ chromosome_length =  eval(input("Expression length (odd): "))
 
 for i in range(repititions):
     print("Repitition:",i+1)
-    doIt(target_value, chromosome_length)
+    doIt(target_value, chromosome_length, data_file)
+
+data_file.close()
