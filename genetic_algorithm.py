@@ -113,12 +113,13 @@ def find_target(trg, length, data_file):
                 # SIGNALS PROGRAM END
 
                 # Prints runtime details and various data about the execution
-                fout.write("""Done\nGeneration - {0}\nExpression -
-                {1}\nRaw value - {2}\nRounded value - {3}\nTarget -
-                {4}\nRuntime - {5} seconds\n""".format(generation_num,
-                                                       expression, eval(expression), round(
-                                                           eval(expression)),
-                                                       target, (time.time() - start_time)))
+                fout.write("Done\nGeneration - {0}\nExpression - \
+                    {1}\nRaw value - {2}\nRounded value - {3}\nTarget - \
+                    {4}\nRuntime - {5} seconds\n".replace('    ', '').format(
+                    generation_num,
+                    expression, eval(expression), round(eval(expression)),
+                    target, (time.time() - start_time)
+                ))
 
                 temp_df = pd.DataFrame()
 
@@ -143,12 +144,13 @@ def find_target(trg, length, data_file):
 
                 temp_df.to_csv(data_file, header=False, index=False)
 
-                print("""Done\nGeneration - {0}\nExpression -
-                {1}\nRaw value - {2}\nRounded value - {3}\nTarget -
-                {4}\nRuntime - {5} seconds\n""".format(generation_num,
-                                                       expression, eval(expression), round(
-                                                           eval(expression)),
-                                                       target, (time.time() - start_time)))
+                print("Done\nGeneration - {0}\nExpression - \
+                {1}\nRaw value - {2}\nRounded value - {3}\nTarget - \
+                {4}\nRuntime - {5} seconds\n".replace('    ', '').format(
+                    generation_num,
+                    expression, eval(expression), round(eval(expression)),
+                    target, (time.time() - start_time)
+                ))
 
                 return True
 
