@@ -13,11 +13,11 @@ if(os.stat("Data/genetic_algorithm_data.csv").st_size) == 0:
 random_exp_str (avg),calc_scores (total),calc_scores (avg),\
 calc_percents (total),calc_percents (avg),mutate (total),mutate (avg),\
 cross_chromosomes (total),cross_chromosomes (avg),choose_two (total),\
-choose_two (avg),print_generation (total),print_generation (avg),\
-Expression,Raw Evaluation,Target Value,Number of Generations\n")
+choose_two (avg), (total),print_generation (avg),\
+Expression,Raw Evaluation,Target Value,Number of Generations,Optimized\n")
 
 
-def find_target(trg, length, data_file):
+def find_target(trg, length, data):
     """
     This function is just for finding the average time it takes to
     find a specific value for any given setup
@@ -94,7 +94,7 @@ def find_target(trg, length, data_file):
             time.time() - func_start)
         return x
 
-    def calc_scores(expressions, trg_val, generation_num, data_file):
+    def calc_scores(expressions, trg_val, generation_num, data):
         """
         Calculates the fitness score based on it's proximity to the
         target
@@ -141,8 +141,9 @@ def find_target(trg, length, data_file):
                 temp_df["Raw Evaluation"] = pd.Series(eval(expression))
                 temp_df["Target Value"] = pd.Series(trg_val)
                 temp_df["Number of Generations"] = pd.Series(generation_num)
+                temp_df["Optimized"] = pd.Series(str(data["optimize"]))
 
-                temp_df.to_csv(data_file, header=False, index=False)
+                temp_df.to_csv(data["data_file"], header=False, index=False)
 
                 print("Done\nGeneration - {0}\nExpression - \
                 {1}\nRaw value - {2}\nRounded value - {3}\nTarget - \
@@ -345,7 +346,7 @@ def find_target(trg, length, data_file):
     for i in range(40):
         start_exps[0].append(random_exp_str(chrom_len))
 
-    start_exps.append(calc_scores(start_exps[0], target, count, data_file))
+    start_exps.append(calc_scores(start_exps[0], target, count, data))
 
     if start_exps[1] == True:
         fout.close()
@@ -362,7 +363,9 @@ def find_target(trg, length, data_file):
     while not done:
         if count % 25 == 0:
             print(count)
-        print_generation(new_gen, count)
+
+        if data["optimize"] == False:
+            print_generation(new_gen, count)
         mutation_count = 0
         # Make pairs to be crossed and sent to the new generation
         pairs = choose_two(len(new_gen[0]) // 2, new_gen[0], new_gen[2])
@@ -377,7 +380,7 @@ def find_target(trg, length, data_file):
 
         # Calculate the scores of this newly made generation
         # w/out mutations
-        new_gen.append(calc_scores(new_gen[0], target, count, data_file))
+        new_gen.append(calc_scores(new_gen[0], target, count, data))
 
         if new_gen[1] == True:
             fout.close()
@@ -401,7 +404,7 @@ def find_target(trg, length, data_file):
             new_gen[0][i] = temp[0]
 
         # Recalc scores after mutations
-        new_gen[1] = calc_scores(new_gen[0], target, count, data_file)
+        new_gen[1] = calc_scores(new_gen[0], target, count, data)
 
         if new_gen[1] == True:
             fout.close()
@@ -420,12 +423,44 @@ This is just here to make the Algorithm repeat multiple times to
 judge efficiency
 """
 
-repititions = eval(input("Repititions: "))
-target_value = eval(input("Target: "))
-chromosome_length = eval(input("Expression length (odd): "))
+repititions = input("Repititions [100]: ")
+target_value = input("Target [9235]: ")
+chromosome_length = input("Expression length (odd) [75]: ")
+speed = input("Optimize speed [y]/n?")
+
+if repititions == '':
+    repititions = 100
+else:
+    repititions = int(repititions)
+
+if target_value == '':
+    target_value = 9235
+else:
+    target_value = int(target_value)
+
+if chromosome_length == '':
+    chromosome_length = 75
+else:
+    chromosome_length = int(chromosome_length)
+
+valid = False
+while not valid:
+    if speed == '':
+        speed = True
+        valid = True
+    elif speed == 'n' or speed == 'N':
+        speed = False
+        valid = True
+    else:
+        speed = input("Please enter 'y' or 'n' to optimize speed or not [y]: ")
+
+data = {
+    "data_file": data_file,
+    "optimize": speed
+}
 
 for i in range(repititions):
     print("Repitition:", i + 1)
-    find_target(target_value, chromosome_length, data_file)
+    find_target(target_value, chromosome_length, data)
 
 data_file.close()
