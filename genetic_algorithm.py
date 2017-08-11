@@ -17,7 +17,7 @@ choose_two (avg),print_generation (total),print_generation (avg),\
 Expression,Raw Evaluation,Target Value,Number of Generations\n")
 
 
-def doIt(trg,length,data_file):
+def doIt(trg, length, data_file):
     """
     NOTE: terrible function name, I apologise
 
@@ -37,7 +37,7 @@ def doIt(trg,length,data_file):
     count = 1
     operators = ['+', '-', '*', '/']
 
-    fout = open("Data/complete_data(BIG_FILE).txt",'w')
+    fout = open("Data/complete_data(BIG_FILE).txt", 'w')
 
     function_times = {
         "random_exp_str": {
@@ -70,7 +70,6 @@ def doIt(trg,length,data_file):
         }
     }
 
-
     def random_exp_str(length):
         """
         Create a random expression that alternates between a
@@ -83,19 +82,19 @@ def doIt(trg,length,data_file):
         """
         func_start = time.time()
 
-        x=''
+        x = ''
 
         for i in range(length):
 
-            if i%2 == 0:
-                x+=str(random.randint(1,9))
+            if i % 2 == 0:
+                x += str(random.randint(1, 9))
             else:
-                x+=random.choice(operators)
+                x += random.choice(operators)
 
-        function_times["random_exp_str"]["total"] += time.time()-func_start
-        function_times["random_exp_str"]["indv_times"].append(time.time()-func_start)
+        function_times["random_exp_str"]["total"] += time.time() - func_start
+        function_times["random_exp_str"]["indv_times"].append(
+            time.time() - func_start)
         return x
-
 
     def calc_scores(expressions, trg_val, generation_num, data_file):
         """
@@ -119,8 +118,9 @@ def doIt(trg,length,data_file):
                 fout.write("""Done\nGeneration - {0}\nExpression -
                 {1}\nRaw value - {2}\nRounded value - {3}\nTarget -
                 {4}\nRuntime - {5} seconds\n""".format(generation_num,
-                expression,eval(expression),round(eval(expression)),
-                target,(time.time()-start_time)))
+                                                       expression, eval(expression), round(
+                                                           eval(expression)),
+                                                       target, (time.time() - start_time)))
 
                 temp_df = pd.DataFrame()
 
@@ -128,15 +128,15 @@ def doIt(trg,length,data_file):
                 temp_df["Overall Time"] = pd.Series(time.time() - start_time)
 
                 # Stores the runtime averages and totals for each func
-                for k,v in function_times.items():
-                    temp_df[str(k+" (total)")] = pd.Series(v["total"])
+                for k, v in function_times.items():
+                    temp_df[str(k + " (total)")] = pd.Series(v["total"])
 
                     if len(v["indv_times"]) is not 0:
-                        temp_df[str(k+" (avg)")] = pd.Series(sum(v["indv_times"])
-                            / len(v["indv_times"]))
+                        temp_df[str(k + " (avg)")] = pd.Series(sum(v["indv_times"])
+                                                               / len(v["indv_times"]))
                     else:
-                        temp_df[str(k+" (avg)")] = pd.Series(0)
-                        
+                        temp_df[str(k + " (avg)")] = pd.Series(0)
+
                 # Stores the count, final expression, evaluation, and trg_val
                 temp_df["Expression"] = pd.Series(expression)
                 temp_df["Raw Evaluation"] = pd.Series(eval(expression))
@@ -148,19 +148,19 @@ def doIt(trg,length,data_file):
                 print("""Done\nGeneration - {0}\nExpression -
                 {1}\nRaw value - {2}\nRounded value - {3}\nTarget -
                 {4}\nRuntime - {5} seconds\n""".format(generation_num,
-                expression,eval(expression),round(eval(expression)),
-                target,(time.time()-start_time)))
+                                                       expression, eval(expression), round(
+                                                           eval(expression)),
+                                                       target, (time.time() - start_time)))
 
                 return True
 
             else:
-                scores.append(1/abs(trg_val-eval(expression)))
+                scores.append(1 / abs(trg_val - eval(expression)))
 
-
-        function_times["calc_scores"]["total"] += time.time()-func_start
-        function_times["calc_scores"]["indv_times"].append(time.time()-func_start)
+        function_times["calc_scores"]["total"] += time.time() - func_start
+        function_times["calc_scores"]["indv_times"].append(
+            time.time() - func_start)
         return scores
-
 
     def calc_percents(list_of_scores):
         """
@@ -174,12 +174,12 @@ def doIt(trg,length,data_file):
         total = sum(list_of_scores)
 
         for i in list_of_scores:
-            percents.append(i/total)
+            percents.append(i / total)
 
-        function_times["calc_percents"]["total"] += time.time()-func_start
-        function_times["calc_percents"]["indv_times"].append(time.time()-func_start)
+        function_times["calc_percents"]["total"] += time.time() - func_start
+        function_times["calc_percents"]["indv_times"].append(
+            time.time() - func_start)
         return percents
-
 
     def mutate(expression, rate, score, gen_count):
         """
@@ -204,37 +204,38 @@ def doIt(trg,length,data_file):
             elif score < .1:
                 multiplier = 10
             else:
-                multiplier = 1/score
+                multiplier = 1 / score
 
-            if random.random() <= rate*multiplier:
+            if random.random() <= rate * multiplier:
                 mutated = True
 
-                if i%2 == 0:
+                if i % 2 == 0:
                     alt_exp = (alt_exp[:i] +
-                        str(random.randint(1,9)) +
-                        alt_exp[i+1:])
+                               str(random.randint(1, 9)) +
+                               alt_exp[i + 1:])
                 else:
                     alt_exp = (alt_exp[:i] +
-                        random.choice(operators) +
-                        alt_exp[i+1:])
+                               random.choice(operators) +
+                               alt_exp[i + 1:])
 
                 if round(eval(alt_exp)) == target:
-                    function_times["mutate"]["total"] += time.time()-func_start
-                    function_times["mutate"]["indv_times"].append(time.time()-func_start)
+                    function_times["mutate"]["total"] += time.time() - \
+                        func_start
+                    function_times["mutate"]["indv_times"].append(
+                        time.time() - func_start)
                     return mutation
 
         if mutated:
             mutation = [alt_exp]
-            mutation.append(expression+' = '+
-             str(round(eval(expression)))+' -> '+
-             alt_exp+' = '+str(round(eval(alt_exp))))
+            mutation.append(expression + ' = ' +
+                            str(round(eval(expression))) + ' -> ' +
+                            alt_exp + ' = ' + str(round(eval(alt_exp))))
 
-        function_times["mutate"]["total"] += time.time()-func_start
-        function_times["mutate"]["indv_times"].append(time.time()-func_start)
+        function_times["mutate"]["total"] += time.time() - func_start
+        function_times["mutate"]["indv_times"].append(time.time() - func_start)
         return mutation
 
-
-    def cross_chromosomes(exp1,exp2,rate):
+    def cross_chromosomes(exp1, exp2, rate):
         """
         Perfoms the crossover between two chomosomes where it swaps
         the rest of the chromosomes after a random number
@@ -246,24 +247,27 @@ def doIt(trg,length,data_file):
             # Find shortest expression
             short = len(exp1) if exp1 < exp2 else len(exp2)
 
-            cross_index = random.randint(0,short)
+            cross_index = random.randint(0, short)
 
             # Crossover
             temp = exp1
-            exp1 = exp1[:cross_index]+exp2[cross_index:]
-            exp2 = exp2[:cross_index]+temp[cross_index:]
+            exp1 = exp1[:cross_index] + exp2[cross_index:]
+            exp2 = exp2[:cross_index] + temp[cross_index:]
 
-            function_times["cross_chromosomes"]["total"] += time.time()-func_start
-            function_times["cross_chromosomes"]["indv_times"].append(time.time()-func_start)
-            return [exp1,exp2]
+            function_times["cross_chromosomes"]["total"] += time.time() - \
+                func_start
+            function_times["cross_chromosomes"]["indv_times"].append(
+                time.time() - func_start)
+            return [exp1, exp2]
 
         else:
-            function_times["cross_chromosomes"]["total"] += time.time()-func_start
-            function_times["cross_chromosomes"]["indv_times"].append(time.time()-func_start)
-            return [exp1,exp2]
+            function_times["cross_chromosomes"]["total"] += time.time() - \
+                func_start
+            function_times["cross_chromosomes"]["indv_times"].append(
+                time.time() - func_start)
+            return [exp1, exp2]
 
-
-    def choose_two(num_of_pairs,expressions,percents):
+    def choose_two(num_of_pairs, expressions, percents):
         """
         Returns two expressions. The expressions are chosen based on
         the percents.
@@ -272,9 +276,9 @@ def doIt(trg,length,data_file):
         func_start = time.time()
 
         # Sort expressions based off of increasing percents
-        sorted_expressions = [expression for (percent,expression)
-            in sorted(zip(percents,expressions),
-            key = lambda pair: pair[0])]
+        sorted_expressions = [expression for (percent, expression)
+                              in sorted(zip(percents, expressions),
+                                        key=lambda pair: pair[0])]
         # Sort percents
         sorted_percents = sorted(percents)
         pairs = []
@@ -284,7 +288,7 @@ def doIt(trg,length,data_file):
 
             for j in range(2):
                 # Random number to be used for determining which
-                #expression to choose
+                # expression to choose
                 rand_num = random.random()
                 current_percent = 0
 
@@ -297,15 +301,15 @@ def doIt(trg,length,data_file):
 
             pairs.append(two)
 
-        function_times["choose_two"]["total"] += time.time()-func_start
-        function_times["choose_two"]["indv_times"].append(time.time()-func_start)
+        function_times["choose_two"]["total"] += time.time() - func_start
+        function_times["choose_two"]["indv_times"].append(
+            time.time() - func_start)
         return pairs
 
-
-    def print_generation(generation,gen_count):
+    def print_generation(generation, gen_count):
         func_start = time.time()
 
-        fout.write('\nGeneration: '+str(gen_count)+'\n')
+        fout.write('\nGeneration: ' + str(gen_count) + '\n')
 
         for i in range(len(generation)):
 
@@ -320,15 +324,16 @@ def doIt(trg,length,data_file):
 
             for j in range(len(generation[i])):
                 if i == 0:
-                    fout.write(str(j+1)+'\t'+str(generation[i][j])+' = '+
-                     str(eval(generation[i][j]))+' ~= '+
-                     str(round(eval(generation[i][j])))+'\n')
+                    fout.write(str(j + 1) + '\t' + str(generation[i][j]) + ' = ' +
+                               str(eval(generation[i][j])) + ' ~= ' +
+                               str(round(eval(generation[i][j]))) + '\n')
                 else:
-                    fout.write(str(j+1)+'\t'+str(generation[i][j])+'\n')
+                    fout.write(str(j + 1) + '\t' +
+                               str(generation[i][j]) + '\n')
 
-        function_times["print_generation"]["total"] += time.time()-func_start
-        function_times["print_generation"]["indv_times"].append(time.time()-func_start)
-
+        function_times["print_generation"]["total"] += time.time() - func_start
+        function_times["print_generation"]["indv_times"].append(
+            time.time() - func_start)
 
     """
     Algorithm Main
@@ -340,7 +345,7 @@ def doIt(trg,length,data_file):
     for i in range(40):
         start_exps[0].append(random_exp_str(chrom_len))
 
-    start_exps.append(calc_scores(start_exps[0],target,count,data_file))
+    start_exps.append(calc_scores(start_exps[0], target, count, data_file))
 
     if start_exps[1] == True:
         fout.close()
@@ -350,29 +355,29 @@ def doIt(trg,length,data_file):
     new_gen = start_exps
 
     # Make sure lenght is odd
-    if length%2 == 0:
+    if length % 2 == 0:
         print("Length not odd, rounding up")
         length += 1
 
     while not done:
         if count % 25 == 0:
             print(count)
-        print_generation(new_gen,count)
+        print_generation(new_gen, count)
         mutation_count = 0
         # Make pairs to be crossed and sent to the new generation
-        pairs = choose_two(len(new_gen[0])//2,new_gen[0],new_gen[2])
+        pairs = choose_two(len(new_gen[0]) // 2, new_gen[0], new_gen[2])
         new_gen = [[]]
 
         # Cross all the pairs and put them back into a 1D list
         for i in pairs:
-            temp = cross_chromosomes(i[0],i[1],crossover_rate)
+            temp = cross_chromosomes(i[0], i[1], crossover_rate)
 
             for j in temp:
                 new_gen[0].append(j)
 
         # Calculate the scores of this newly made generation
-        #w/out mutations
-        new_gen.append(calc_scores(new_gen[0],target,count,data_file))
+        # w/out mutations
+        new_gen.append(calc_scores(new_gen[0], target, count, data_file))
 
         if new_gen[1] == True:
             fout.close()
@@ -380,15 +385,15 @@ def doIt(trg,length,data_file):
 
         # Make new layer for expression percentages
         #(made before mutation in order to reserve
-        #index 2 for percentages)
+        # index 2 for percentages)
         new_gen.append([])
 
         # Mutate the new generation
         for i in range(len(new_gen[0])):
-            temp = mutate(new_gen[0][i],mutation_rate,new_gen[1][i],count)
+            temp = mutate(new_gen[0][i], mutation_rate, new_gen[1][i], count)
 
-            if len(temp)>1:
-                mutation_count+=1
+            if len(temp) > 1:
+                mutation_count += 1
                 if mutation_count == 1:
                     new_gen.append([])
                 new_gen[3].append(temp[1])
@@ -396,18 +401,16 @@ def doIt(trg,length,data_file):
             new_gen[0][i] = temp[0]
 
         # Recalc scores after mutations
-        new_gen[1] = calc_scores(new_gen[0],target,count,data_file)
+        new_gen[1] = calc_scores(new_gen[0], target, count, data_file)
 
         if new_gen[1] == True:
             fout.close()
             return
 
-
         for i in new_gen[0]:
             new_gen[2] = calc_percents(new_gen[1])
 
         count += 1
-
 
 
 """
@@ -419,10 +422,10 @@ judge efficiency
 
 repititions = eval(input("Repititions: "))
 target_value = eval(input("Target: "))
-chromosome_length =  eval(input("Expression length (odd): "))
+chromosome_length = eval(input("Expression length (odd): "))
 
 for i in range(repititions):
-    print("Repitition:",i+1)
+    print("Repitition:", i + 1)
     doIt(target_value, chromosome_length, data_file)
 
 data_file.close()
