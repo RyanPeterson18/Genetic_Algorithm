@@ -130,9 +130,13 @@ def doIt(trg,length,data_file):
                 # Stores the runtime averages and totals for each func
                 for k,v in function_times.items():
                     temp_df[str(k+" (total)")] = pd.Series(v["total"])
-                    temp_df[str(k+" (avg)")] = pd.Series(sum(v["indv_times"])
-                        / len(v["indv_times"]))
 
+                    if len(v["indv_times"]) is not 0:
+                        temp_df[str(k+" (avg)")] = pd.Series(sum(v["indv_times"])
+                            / len(v["indv_times"]))
+                    else:
+                        temp_df[str(k+" (avg)")] = pd.Series(0)
+                        
                 # Stores the count, final expression, evaluation, and trg_val
                 temp_df["Expression"] = pd.Series(expression)
                 temp_df["Raw Evaluation"] = pd.Series(eval(expression))
