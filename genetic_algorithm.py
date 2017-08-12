@@ -4,6 +4,7 @@ import math
 import time
 import pandas as pd
 import os
+import gen_alg_module
 
 data_file = open("Data/genetic_algorithm_data.csv", 'a+')
 
@@ -13,7 +14,7 @@ if(os.stat("Data/genetic_algorithm_data.csv").st_size) == 0:
 random_exp_str (avg),calc_scores (total),calc_scores (avg),\
 calc_percents (total),calc_percents (avg),mutate (total),mutate (avg),\
 cross_chromosomes (total),cross_chromosomes (avg),choose_two (total),\
-choose_two (avg), (total),print_generation (avg),\
+choose_two (avg), print_generation (total),print_generation (avg),\
 Expression,Raw Evaluation,Target Value,Number of Generations,Optimized\n")
 
 
@@ -37,7 +38,7 @@ def find_target(trg, length, data):
 
     fout = open("Data/complete_data(BIG_FILE).txt", 'w')
 
-    function_times = {
+    out_data["function_times"] = {
         "random_exp_str": {
             "total": 0,
             "indv_times": []
@@ -76,7 +77,7 @@ def find_target(trg, length, data):
         NOTE: expression must be odd
 
         example:
-            7-5/2*2+3
+            "7-5/2*2+3"
         """
         func_start = time.time()
 
@@ -89,12 +90,13 @@ def find_target(trg, length, data):
             else:
                 x += random.choice(operators)
 
-        function_times["random_exp_str"]["total"] += time.time() - func_start
-        function_times["random_exp_str"]["indv_times"].append(
+        out_data["function_times"]["random_exp_str"]["total"] += time.time() - \
+            func_start
+        out_data["function_times"]["random_exp_str"]["indv_times"].append(
             time.time() - func_start)
         return x
 
-    def calc_scores(expressions, trg_val, generation_num, data):
+    def calc_scores(expressions, trg_val, generation_num, out_data):
         """
         Calculates the fitness score based on it's proximity to the
         target
@@ -127,7 +129,7 @@ def find_target(trg, length, data):
                 temp_df["Overall Time"] = pd.Series(time.time() - start_time)
 
                 # Stores the runtime averages and totals for each func
-                for k, v in function_times.items():
+                for k, v in out_data["function_times"].items():
                     temp_df[str(k + " (total)")] = pd.Series(v["total"])
 
                     if len(v["indv_times"]) is not 0:
@@ -141,9 +143,10 @@ def find_target(trg, length, data):
                 temp_df["Raw Evaluation"] = pd.Series(eval(expression))
                 temp_df["Target Value"] = pd.Series(trg_val)
                 temp_df["Number of Generations"] = pd.Series(generation_num)
-                temp_df["Optimized"] = pd.Series(str(data["optimize"]))
+                temp_df["Optimized"] = pd.Series(str(out_data["optimize"]))
 
-                temp_df.to_csv(data["data_file"], header=False, index=False)
+                temp_df.to_csv(out_data["data_file"],
+                               header=False, index=False)
 
                 print("Done\nGeneration - {0}\nExpression - \
                 {1}\nRaw value - {2}\nRounded value - {3}\nTarget - \
@@ -158,8 +161,9 @@ def find_target(trg, length, data):
             else:
                 scores.append(1 / abs(trg_val - eval(expression)))
 
-        function_times["calc_scores"]["total"] += time.time() - func_start
-        function_times["calc_scores"]["indv_times"].append(
+        out_data["function_times"]["calc_scores"]["total"] += time.time() - \
+            func_start
+        out_data["function_times"]["calc_scores"]["indv_times"].append(
             time.time() - func_start)
         return scores
 
@@ -177,64 +181,67 @@ def find_target(trg, length, data):
         for i in list_of_scores:
             percents.append(i / total)
 
-        function_times["calc_percents"]["total"] += time.time() - func_start
-        function_times["calc_percents"]["indv_times"].append(
+        out_data["function_times"]["calc_percents"]["total"] += time.time() - \
+            func_start
+        out_data["function_times"]["calc_percents"]["indv_times"].append(
             time.time() - func_start)
         return percents
 
-    def mutate(expression, rate, score, gen_count):
-        """
-        Creates a list with len(list) <= len(expression) + 1 where a
-        different character has been randomized each time from the
-        original expression. There is a rate percent chance of any
-        one character to be changed
-        """
-
-        func_start = time.time()
-
-        mutation = [expression]
-        mutated = False
-        alt_exp = expression
-
-        for i in range(len(expression)):
-
-            # determine a multiplier to accelerate or muffle the mutation
-            # multiplier<1 and the rate will be divided by it
-            if score > 1:
-                multiplier = 1
-            elif score < .1:
-                multiplier = 10
-            else:
-                multiplier = 1 / score
-
-            if random.random() <= rate * multiplier:
-                mutated = True
-
-                if i % 2 == 0:
-                    alt_exp = (alt_exp[:i] +
-                               str(random.randint(1, 9)) +
-                               alt_exp[i + 1:])
-                else:
-                    alt_exp = (alt_exp[:i] +
-                               random.choice(operators) +
-                               alt_exp[i + 1:])
-
-                if round(eval(alt_exp)) == target:
-                    function_times["mutate"]["total"] += time.time() - \
-                        func_start
-                    function_times["mutate"]["indv_times"].append(
-                        time.time() - func_start)
-                    return mutation
-
-        if mutated:
-            mutation = [alt_exp]
-            mutation.append(expression + ' = ' +
-                            str(round(eval(expression))) + ' -> ' +
-                            alt_exp + ' = ' + str(round(eval(alt_exp))))
-
-        function_times["mutate"]["total"] += time.time() - func_start
-        function_times["mutate"]["indv_times"].append(time.time() - func_start)
-        return mutation
+    # def mutate(expression, rate, score, operators, target, data):
+    #     """
+    #     Creates a list with len(list) <= len(expression) + 1 where a
+    #     different character has been randomized each time from the
+    #     original expression. There is a rate percent chance of any
+    #     one character to be changed
+    #     """
+    #
+    #     func_start = time.time()
+    #
+    #     mutation = [expression]
+    #     mutated = False
+    #     alt_exp = expression
+    #
+    #     for i in range(len(expression)):
+    #
+    #         # determine a multiplier to accelerate or muffle the mutation
+    #         # multiplier<1 and the rate will be divided by it
+    #         if score > 1:
+    #             multiplier = 1
+    #         elif score < .1:
+    #             multiplier = 10
+    #         else:
+    #             multiplier = 1 / score
+    #
+    #         if random.random() <= rate * multiplier:
+    #             mutated = True
+    #
+    #             if i % 2 == 0:
+    #                 alt_exp = (alt_exp[:i] +
+    #                            str(random.randint(1, 9)) +
+    #                            alt_exp[i + 1:])
+    #             else:
+    #                 alt_exp = (alt_exp[:i] +
+    #                            random.choice(operators) +
+    #                            alt_exp[i + 1:])
+    #
+    #             if round(eval(alt_exp)) == target:
+    #                 out_data["function_times"]["mutate"]["total"] += time.time() - \
+    #                     func_start
+    #                 out_data["function_times"]["mutate"]["indv_times"].append(
+    #                     time.time() - func_start)
+    #                 return mutation
+    #
+    #     if mutated:
+    #         mutation = [alt_exp]
+    #         mutation.append(expression + ' = ' +
+    #                         str(round(eval(expression))) + ' -> ' +
+    #                         alt_exp + ' = ' + str(round(eval(alt_exp))))
+    #
+    #     out_data["function_times"]["mutate"]["total"] += time.time() - \
+    #         func_start
+    #     out_data["function_times"]["mutate"]["indv_times"].append(
+    #         time.time() - func_start)
+    #     return mutation
 
     def cross_chromosomes(exp1, exp2, rate):
         """
@@ -255,16 +262,16 @@ def find_target(trg, length, data):
             exp1 = exp1[:cross_index] + exp2[cross_index:]
             exp2 = exp2[:cross_index] + temp[cross_index:]
 
-            function_times["cross_chromosomes"]["total"] += time.time() - \
+            out_data["function_times"]["cross_chromosomes"]["total"] += time.time() - \
                 func_start
-            function_times["cross_chromosomes"]["indv_times"].append(
+            out_data["function_times"]["cross_chromosomes"]["indv_times"].append(
                 time.time() - func_start)
             return [exp1, exp2]
 
         else:
-            function_times["cross_chromosomes"]["total"] += time.time() - \
+            out_data["function_times"]["cross_chromosomes"]["total"] += time.time() - \
                 func_start
-            function_times["cross_chromosomes"]["indv_times"].append(
+            out_data["function_times"]["cross_chromosomes"]["indv_times"].append(
                 time.time() - func_start)
             return [exp1, exp2]
 
@@ -302,8 +309,9 @@ def find_target(trg, length, data):
 
             pairs.append(two)
 
-        function_times["choose_two"]["total"] += time.time() - func_start
-        function_times["choose_two"]["indv_times"].append(
+        out_data["function_times"]["choose_two"]["total"] += time.time() - \
+            func_start
+        out_data["function_times"]["choose_two"]["indv_times"].append(
             time.time() - func_start)
         return pairs
 
@@ -332,8 +340,9 @@ def find_target(trg, length, data):
                     fout.write(str(j + 1) + '\t' +
                                str(generation[i][j]) + '\n')
 
-        function_times["print_generation"]["total"] += time.time() - func_start
-        function_times["print_generation"]["indv_times"].append(
+        out_data["function_times"]["print_generation"]["total"] += time.time() - \
+            func_start
+        out_data["function_times"]["print_generation"]["indv_times"].append(
             time.time() - func_start)
 
     """
@@ -346,7 +355,7 @@ def find_target(trg, length, data):
     for i in range(40):
         start_exps[0].append(random_exp_str(chrom_len))
 
-    start_exps.append(calc_scores(start_exps[0], target, count, data))
+    start_exps.append(calc_scores(start_exps[0], target, count, out_data))
 
     if start_exps[1] == True:
         fout.close()
@@ -364,7 +373,7 @@ def find_target(trg, length, data):
         if count % 25 == 0:
             print(count)
 
-        if data["optimize"] == False:
+        if out_data["optimize"] == False:
             print_generation(new_gen, count)
         mutation_count = 0
         # Make pairs to be crossed and sent to the new generation
@@ -380,7 +389,7 @@ def find_target(trg, length, data):
 
         # Calculate the scores of this newly made generation
         # w/out mutations
-        new_gen.append(calc_scores(new_gen[0], target, count, data))
+        new_gen.append(calc_scores(new_gen[0], target, count, out_data))
 
         if new_gen[1] == True:
             fout.close()
@@ -393,7 +402,8 @@ def find_target(trg, length, data):
 
         # Mutate the new generation
         for i in range(len(new_gen[0])):
-            temp = mutate(new_gen[0][i], mutation_rate, new_gen[1][i], count)
+            temp = gen_alg_module.mutate(new_gen[0][i], mutation_rate,
+                                         new_gen[1][i], operators, target, out_data)
 
             if len(temp) > 1:
                 mutation_count += 1
@@ -404,7 +414,7 @@ def find_target(trg, length, data):
             new_gen[0][i] = temp[0]
 
         # Recalc scores after mutations
-        new_gen[1] = calc_scores(new_gen[0], target, count, data)
+        new_gen[1] = calc_scores(new_gen[0], target, count, out_data)
 
         if new_gen[1] == True:
             fout.close()
@@ -454,13 +464,13 @@ while not valid:
     else:
         speed = input("Please enter 'y' or 'n' to optimize speed or not [y]: ")
 
-data = {
+out_data = {
     "data_file": data_file,
     "optimize": speed
 }
 
 for i in range(repititions):
     print("Repitition:", i + 1)
-    find_target(target_value, chromosome_length, data)
+    find_target(target_value, chromosome_length, out_data)
 
 data_file.close()
