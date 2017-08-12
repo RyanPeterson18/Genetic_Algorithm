@@ -36,7 +36,7 @@ def find_target(trg, length, data):
     count = 1
     operators = ['+', '-', '*', '/']
 
-    fout = open("Data/complete_data(BIG_FILE).txt", 'w')
+    out_data["fout"] = open("Data/complete_data(BIG_FILE).txt", 'w')
 
     out_data["function_times"] = {
         "random_exp_str": {
@@ -96,76 +96,67 @@ def find_target(trg, length, data):
             time.time() - func_start)
         return x
 
-    def calc_scores(expressions, trg_val, generation_num, out_data):
+    def check_and_score(expressions, target, gen_count, start_time, out_data):
         """
-        Calculates the fitness score based on it's proximity to the
-        target
-
-        NOTE: it also signals to end the program if it equals the target value
+        Checks to see if program should end and calculates the expression scores
+        if it doesn't signal a stop
         """
 
-        func_start = time.time()
+        scores = gen_alg_module.calc_scores(
+            expressions, target, out_data)
 
-        scores = []
+        if scores[0] == True:
 
-        for expression in expressions:
+            # SIGNALS PROGRAM END
 
-            if round(eval(expression)) == trg_val:
+            expression = str(scores[1])
 
-                # SIGNALS PROGRAM END
+            temp_df = pd.DataFrame()
 
-                # Prints runtime details and various data about the execution
-                fout.write("Done\nGeneration - {0}\nExpression - \
-                    {1}\nRaw value - {2}\nRounded value - {3}\nTarget - \
-                    {4}\nRuntime - {5} seconds\n".replace('    ', '').format(
-                    generation_num,
-                    expression, eval(expression), round(eval(expression)),
-                    target, (time.time() - start_time)
-                ))
+            # Stores the overall runtime
+            temp_df["Overall Time"] = pd.Series(time.time() - start_time)
 
-                temp_df = pd.DataFrame()
+            # Stores the runtime averages and totals for each func
+            for k, v in out_data["function_times"].items():
+                temp_df[str(k + " (total)")] = pd.Series(v["total"])
 
-                # Stores the overall runtime
-                temp_df["Overall Time"] = pd.Series(time.time() - start_time)
+                if len(v["indv_times"]) is not 0:
+                    temp_df[str(k + " (avg)")] = pd.Series(sum(v["indv_times"])
+                                                           / len(v["indv_times"]))
+                else:
+                    temp_df[str(k + " (avg)")] = pd.Series(0)
 
-                # Stores the runtime averages and totals for each func
-                for k, v in out_data["function_times"].items():
-                    temp_df[str(k + " (total)")] = pd.Series(v["total"])
+            # Stores the count, final expression, evaluation, and target
+            temp_df["Expression"] = pd.Series(expression)
+            temp_df["Raw Evaluation"] = pd.Series(eval(expression))
+            temp_df["Target Value"] = pd.Series(target)
+            temp_df["Number of Generations"] = pd.Series(gen_count)
+            temp_df["Optimized"] = pd.Series(str(out_data["optimize"]))
 
-                    if len(v["indv_times"]) is not 0:
-                        temp_df[str(k + " (avg)")] = pd.Series(sum(v["indv_times"])
-                                                               / len(v["indv_times"]))
-                    else:
-                        temp_df[str(k + " (avg)")] = pd.Series(0)
+            temp_df.to_csv(out_data["data_file"],
+                           header=False, index=False)
 
-                # Stores the count, final expression, evaluation, and trg_val
-                temp_df["Expression"] = pd.Series(expression)
-                temp_df["Raw Evaluation"] = pd.Series(eval(expression))
-                temp_df["Target Value"] = pd.Series(trg_val)
-                temp_df["Number of Generations"] = pd.Series(generation_num)
-                temp_df["Optimized"] = pd.Series(str(out_data["optimize"]))
-
-                temp_df.to_csv(out_data["data_file"],
-                               header=False, index=False)
-
-                print("Done\nGeneration - {0}\nExpression - \
+            # Prints runtime details and various data about the execution to
+            # file and console
+            out_data["fout"].write("Done\nGeneration - {0}\nExpression - \
                 {1}\nRaw value - {2}\nRounded value - {3}\nTarget - \
                 {4}\nRuntime - {5} seconds\n".replace('    ', '').format(
-                    generation_num,
-                    expression, eval(expression), round(eval(expression)),
-                    target, (time.time() - start_time)
-                ))
+                gen_count,
+                expression, eval(expression), round(eval(expression)),
+                target, (time.time() - start_time)
+            ))
 
-                return True
+            print("Done\nGeneration - {0}\nExpression - \
+            {1}\nRaw value - {2}\nRounded value - {3}\nTarget - \
+            {4}\nRuntime - {5} seconds\n".replace('    ', '').format(
+                gen_count,
+                expression, eval(expression), round(eval(expression)),
+                target, (time.time() - start_time)
+            ))
 
-            else:
-                scores.append(1 / abs(trg_val - eval(expression)))
-
-        out_data["function_times"]["calc_scores"]["total"] += time.time() - \
-            func_start
-        out_data["function_times"]["calc_scores"]["indv_times"].append(
-            time.time() - func_start)
-        return scores
+            return True
+        else:
+            return scores
 
     def calc_percents(list_of_scores):
         """
@@ -186,62 +177,6 @@ def find_target(trg, length, data):
         out_data["function_times"]["calc_percents"]["indv_times"].append(
             time.time() - func_start)
         return percents
-
-    # def mutate(expression, rate, score, operators, target, data):
-    #     """
-    #     Creates a list with len(list) <= len(expression) + 1 where a
-    #     different character has been randomized each time from the
-    #     original expression. There is a rate percent chance of any
-    #     one character to be changed
-    #     """
-    #
-    #     func_start = time.time()
-    #
-    #     mutation = [expression]
-    #     mutated = False
-    #     alt_exp = expression
-    #
-    #     for i in range(len(expression)):
-    #
-    #         # determine a multiplier to accelerate or muffle the mutation
-    #         # multiplier<1 and the rate will be divided by it
-    #         if score > 1:
-    #             multiplier = 1
-    #         elif score < .1:
-    #             multiplier = 10
-    #         else:
-    #             multiplier = 1 / score
-    #
-    #         if random.random() <= rate * multiplier:
-    #             mutated = True
-    #
-    #             if i % 2 == 0:
-    #                 alt_exp = (alt_exp[:i] +
-    #                            str(random.randint(1, 9)) +
-    #                            alt_exp[i + 1:])
-    #             else:
-    #                 alt_exp = (alt_exp[:i] +
-    #                            random.choice(operators) +
-    #                            alt_exp[i + 1:])
-    #
-    #             if round(eval(alt_exp)) == target:
-    #                 out_data["function_times"]["mutate"]["total"] += time.time() - \
-    #                     func_start
-    #                 out_data["function_times"]["mutate"]["indv_times"].append(
-    #                     time.time() - func_start)
-    #                 return mutation
-    #
-    #     if mutated:
-    #         mutation = [alt_exp]
-    #         mutation.append(expression + ' = ' +
-    #                         str(round(eval(expression))) + ' -> ' +
-    #                         alt_exp + ' = ' + str(round(eval(alt_exp))))
-    #
-    #     out_data["function_times"]["mutate"]["total"] += time.time() - \
-    #         func_start
-    #     out_data["function_times"]["mutate"]["indv_times"].append(
-    #         time.time() - func_start)
-    #     return mutation
 
     def cross_chromosomes(exp1, exp2, rate):
         """
@@ -318,27 +253,27 @@ def find_target(trg, length, data):
     def print_generation(generation, gen_count):
         func_start = time.time()
 
-        fout.write('\nGeneration: ' + str(gen_count) + '\n')
+        out_data["fout"].write('\nGeneration: ' + str(gen_count) + '\n')
 
         for i in range(len(generation)):
 
             if i == 0:
-                fout.write("Expressions:\n")
+                out_data["fout"].write("Expressions:\n")
             elif i == 1:
-                fout.write("Scores:\n")
+                out_data["fout"].write("Scores:\n")
             elif i == 2:
-                fout.write("Percentages:\n")
+                out_data["fout"].write("Percentages:\n")
             else:
-                fout.write("Mutations:\n")
+                out_data["fout"].write("Mutations:\n")
 
             for j in range(len(generation[i])):
                 if i == 0:
-                    fout.write(str(j + 1) + '\t' + str(generation[i][j]) + ' = ' +
-                               str(eval(generation[i][j])) + ' ~= ' +
-                               str(round(eval(generation[i][j]))) + '\n')
+                    out_data["fout"].write(str(j + 1) + '\t' + str(generation[i][j]) + ' = ' +
+                                           str(eval(generation[i][j])) + ' ~= ' +
+                                           str(round(eval(generation[i][j]))) + '\n')
                 else:
-                    fout.write(str(j + 1) + '\t' +
-                               str(generation[i][j]) + '\n')
+                    out_data["fout"].write(str(j + 1) + '\t' +
+                                           str(generation[i][j]) + '\n')
 
         out_data["function_times"]["print_generation"]["total"] += time.time() - \
             func_start
@@ -355,10 +290,11 @@ def find_target(trg, length, data):
     for i in range(40):
         start_exps[0].append(random_exp_str(chrom_len))
 
-    start_exps.append(calc_scores(start_exps[0], target, count, out_data))
+    start_exps.append(check_and_score(
+        start_exps[0], target, count, start_time, out_data))
 
     if start_exps[1] == True:
-        fout.close()
+        out_data["fout"].close()
         return
 
     start_exps.append(calc_percents(start_exps[1]))
@@ -389,10 +325,11 @@ def find_target(trg, length, data):
 
         # Calculate the scores of this newly made generation
         # w/out mutations
-        new_gen.append(calc_scores(new_gen[0], target, count, out_data))
+        new_gen.append(check_and_score(
+            new_gen[0], target, count, start_time, out_data))
 
         if new_gen[1] == True:
-            fout.close()
+            out_data["fout"].close()
             return
 
         # Make new layer for expression percentages
@@ -414,10 +351,11 @@ def find_target(trg, length, data):
             new_gen[0][i] = temp[0]
 
         # Recalc scores after mutations
-        new_gen[1] = calc_scores(new_gen[0], target, count, out_data)
+        new_gen[1] = check_and_score(
+            new_gen[0], target, count, start_time, out_data)
 
         if new_gen[1] == True:
-            fout.close()
+            out_data["fout"].close()
             return
 
         for i in new_gen[0]:
