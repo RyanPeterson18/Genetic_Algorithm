@@ -3,7 +3,7 @@ import time
 import pandas as pd
 
 
-def calc_scores(expressions, target, out_data):
+def calc_scores(expressions, target):
     """
     Calculates the fitness score based on it's proximity to the
     target
@@ -11,33 +11,25 @@ def calc_scores(expressions, target, out_data):
     NOTE: it also signals to end the program if it equals the target value
     """
 
-    func_start = time.time()
-
     scores = []
 
     for expression in expressions:
 
-        if round(eval(expression)) == target:
+        if round(eval(expression[:])) == target:
             return True, expression
         else:
             scores.append(1 / abs(target - eval(expression)))
 
-    out_data["function_times"]["calc_scores"]["total"] += time.time() - \
-        func_start
-    out_data["function_times"]["calc_scores"]["indv_times"].append(
-        time.time() - func_start)
-    return scores
+    return scores, None
 
 
-def mutate(expression, rt, score, operators, target, data):
+def mutate(expression, rt, score, operators, target):
     """
     Creates a list with len(list) <= len(expression) + 1 where a
     different character has been randomized each time from the
     original expression. There is a rate percent chance of any
     one character to be changed
     """
-
-    func_start = time.time()
 
     # Optimize using static types
     cdef double rate = rt
@@ -72,10 +64,6 @@ def mutate(expression, rt, score, operators, target, data):
                            alt_exp[i + 1:])
 
             if round(eval(alt_exp)) == target:
-                data["function_times"]["mutate"]["total"] += time.time() - \
-                    func_start
-                data["function_times"]["mutate"]["indv_times"].append(
-                    time.time() - func_start)
                 return mutation
 
     if mutated:
@@ -84,7 +72,4 @@ def mutate(expression, rt, score, operators, target, data):
                         str(round(eval(expression))) + ' -> ' +
                         alt_exp + ' = ' + str(round(eval(alt_exp))))
 
-    data["function_times"]["mutate"]["total"] += time.time() - func_start
-    data["function_times"]["mutate"]["indv_times"].append(
-        time.time() - func_start)
     return mutation

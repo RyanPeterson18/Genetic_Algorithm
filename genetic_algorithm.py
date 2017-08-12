@@ -8,14 +8,26 @@ import gen_alg_module
 
 data_file = open("Data/genetic_algorithm_data.csv", 'a+')
 
+functions = [
+    "random_exp_str",
+    "check_and_score",
+    "calc_percents",
+    "mutate",
+    "cross_chromosomes",
+    "choose_two",
+    "print_generation"
+]
+
 # Create headers if not already made
 if(os.stat("Data/genetic_algorithm_data.csv").st_size) == 0:
-    data_file.write("Overall Time,random_exp_str (total),\
-random_exp_str (avg),calc_scores (total),calc_scores (avg),\
-calc_percents (total),calc_percents (avg),mutate (total),mutate (avg),\
-cross_chromosomes (total),cross_chromosomes (avg),choose_two (total),\
-choose_two (avg), print_generation (total),print_generation (avg),\
-Expression,Raw Evaluation,Target Value,Number of Generations,Optimized\n")
+    function_time_headers = []
+    for i in functions:
+        function_time_headers.extend([i + " (total)", i + " (avg)"])
+
+    data_file.write("Overall Time,{0},Expression,Raw Evaluation,Target Value,\
+        Number of Generations,Optimized\n".replace("    ", '').format(
+        ','.join(function_time_headers))
+    )
 
 
 def find_target(trg, length, data):
@@ -38,36 +50,12 @@ def find_target(trg, length, data):
 
     out_data["fout"] = open("Data/complete_data(BIG_FILE).txt", 'w')
 
-    out_data["function_times"] = {
-        "random_exp_str": {
-            "total": 0,
-            "indv_times": []
-        },
-        "calc_scores": {
-            "total": 0,
-            "indv_times": []
-        },
-        "calc_percents": {
-            "total": 0,
-            "indv_times": []
-        },
-        "mutate": {
-            "total": 0,
-            "indv_times": []
-        },
-        "cross_chromosomes": {
-            "total": 0,
-            "indv_times": []
-        },
-        "choose_two": {
-            "total": 0,
-            "indv_times": []
-        },
-        "print_generation": {
+    out_data["function_times"] = {}
+    for i in functions:
+        out_data["function_times"][i] = {
             "total": 0,
             "indv_times": []
         }
-    }
 
     def random_exp_str(length):
         """
@@ -79,7 +67,6 @@ def find_target(trg, length, data):
         example:
             "7-5/2*2+3"
         """
-        func_start = time.time()
 
         x = ''
 
@@ -90,10 +77,6 @@ def find_target(trg, length, data):
             else:
                 x += random.choice(operators)
 
-        out_data["function_times"]["random_exp_str"]["total"] += time.time() - \
-            func_start
-        out_data["function_times"]["random_exp_str"]["indv_times"].append(
-            time.time() - func_start)
         return x
 
     def check_and_score(expressions, target, gen_count, start_time, out_data):
@@ -102,10 +85,9 @@ def find_target(trg, length, data):
         if it doesn't signal a stop
         """
 
-        scores = gen_alg_module.calc_scores(
-            expressions, target, out_data)
+        scores = gen_alg_module.calc_scores(expressions, target)
 
-        if scores[0] == True:
+        if scores[1] is not None:
 
             # SIGNALS PROGRAM END
 
@@ -117,14 +99,15 @@ def find_target(trg, length, data):
             temp_df["Overall Time"] = pd.Series(time.time() - start_time)
 
             # Stores the runtime averages and totals for each func
-            for k, v in out_data["function_times"].items():
-                temp_df[str(k + " (total)")] = pd.Series(v["total"])
+            for i in functions:
+                temp_df[str(i + " (total)")
+                        ] = pd.Series(out_data["function_times"][i]["total"])
 
-                if len(v["indv_times"]) is not 0:
-                    temp_df[str(k + " (avg)")] = pd.Series(sum(v["indv_times"])
-                                                           / len(v["indv_times"]))
+                if len(out_data["function_times"][i]["indv_times"]) is not 0:
+                    temp_df[str(i + " (avg)")] = pd.Series(sum(out_data["function_times"][i]["indv_times"])
+                                                           / len(out_data["function_times"][i]["indv_times"]))
                 else:
-                    temp_df[str(k + " (avg)")] = pd.Series(0)
+                    temp_df[str(i + " (avg)")] = pd.Series(0)
 
             # Stores the count, final expression, evaluation, and target
             temp_df["Expression"] = pd.Series(expression)
@@ -156,7 +139,7 @@ def find_target(trg, length, data):
 
             return True
         else:
-            return scores
+            return scores[0]
 
     def calc_percents(list_of_scores):
         """
@@ -164,18 +147,12 @@ def find_target(trg, length, data):
         list_of_exps will be chosen for the next generation
         """
 
-        func_start = time.time()
-
         percents = []
         total = sum(list_of_scores)
 
         for i in list_of_scores:
             percents.append(i / total)
 
-        out_data["function_times"]["calc_percents"]["total"] += time.time() - \
-            func_start
-        out_data["function_times"]["calc_percents"]["indv_times"].append(
-            time.time() - func_start)
         return percents
 
     def cross_chromosomes(exp1, exp2, rate):
@@ -183,8 +160,6 @@ def find_target(trg, length, data):
         Perfoms the crossover between two chomosomes where it swaps
         the rest of the chromosomes after a random number
         """
-
-        func_start = time.time()
 
         if random.random() <= rate:
             # Find shortest expression
@@ -197,17 +172,9 @@ def find_target(trg, length, data):
             exp1 = exp1[:cross_index] + exp2[cross_index:]
             exp2 = exp2[:cross_index] + temp[cross_index:]
 
-            out_data["function_times"]["cross_chromosomes"]["total"] += time.time() - \
-                func_start
-            out_data["function_times"]["cross_chromosomes"]["indv_times"].append(
-                time.time() - func_start)
             return [exp1, exp2]
 
         else:
-            out_data["function_times"]["cross_chromosomes"]["total"] += time.time() - \
-                func_start
-            out_data["function_times"]["cross_chromosomes"]["indv_times"].append(
-                time.time() - func_start)
             return [exp1, exp2]
 
     def choose_two(num_of_pairs, expressions, percents):
@@ -215,8 +182,6 @@ def find_target(trg, length, data):
         Returns two expressions. The expressions are chosen based on
         the percents.
         """
-
-        func_start = time.time()
 
         # Sort expressions based off of increasing percents
         sorted_expressions = [expression for (percent, expression)
@@ -244,14 +209,9 @@ def find_target(trg, length, data):
 
             pairs.append(two)
 
-        out_data["function_times"]["choose_two"]["total"] += time.time() - \
-            func_start
-        out_data["function_times"]["choose_two"]["indv_times"].append(
-            time.time() - func_start)
         return pairs
 
     def print_generation(generation, gen_count):
-        func_start = time.time()
 
         out_data["fout"].write('\nGeneration: ' + str(gen_count) + '\n')
 
@@ -275,11 +235,6 @@ def find_target(trg, length, data):
                     out_data["fout"].write(str(j + 1) + '\t' +
                                            str(generation[i][j]) + '\n')
 
-        out_data["function_times"]["print_generation"]["total"] += time.time() - \
-            func_start
-        out_data["function_times"]["print_generation"]["indv_times"].append(
-            time.time() - func_start)
-
     """
     Algorithm Main
     """
@@ -288,16 +243,32 @@ def find_target(trg, length, data):
     done = False
 
     for i in range(40):
+        func_start = time.time()
         start_exps[0].append(random_exp_str(chrom_len))
+        out_data["function_times"]["random_exp_str"]["total"] += time.time() - \
+            func_start
+        out_data["function_times"]["random_exp_str"]["indv_times"].append(
+            time.time() - func_start)
 
+    func_start = time.time()
     start_exps.append(check_and_score(
         start_exps[0], target, count, start_time, out_data))
 
     if start_exps[1] == True:
         out_data["fout"].close()
         return
+    else:
+        out_data["function_times"]["check_and_score"]["total"] += time.time() - \
+            func_start
+        out_data["function_times"]["check_and_score"]["indv_times"].append(
+            time.time() - func_start)
 
+    func_start = time.time()
     start_exps.append(calc_percents(start_exps[1]))
+    out_data["function_times"]["calc_percents"]["total"] += time.time() - \
+        func_start
+    out_data["function_times"]["calc_percents"]["indv_times"].append(
+        time.time() - func_start)
     new_gen = start_exps
 
     # Make sure lenght is odd
@@ -310,37 +281,63 @@ def find_target(trg, length, data):
             print(count)
 
         if out_data["optimize"] == False:
+            func_start = time.time()
             print_generation(new_gen, count)
+            out_data["function_times"]["print_generation"]["total"] += time.time() - \
+                func_start
+            out_data["function_times"]["print_generation"]["indv_times"].append(
+                time.time() - func_start)
         mutation_count = 0
         # Make pairs to be crossed and sent to the new generation
+        func_start = time.time()
         pairs = choose_two(len(new_gen[0]) // 2, new_gen[0], new_gen[2])
+        out_data["function_times"]["choose_two"]["total"] += time.time() - \
+            func_start
+        out_data["function_times"]["choose_two"]["indv_times"].append(
+            time.time() - func_start)
         new_gen = [[]]
 
         # Cross all the pairs and put them back into a 1D list
         for i in pairs:
+            func_start = time.time()
             temp = cross_chromosomes(i[0], i[1], crossover_rate)
+            out_data["function_times"]["cross_chromosomes"]["total"] += time.time() - \
+                func_start
+            out_data["function_times"]["cross_chromosomes"]["indv_times"].append(
+                time.time() - func_start)
 
             for j in temp:
                 new_gen[0].append(j)
 
         # Calculate the scores of this newly made generation
         # w/out mutations
+        func_start = time.time()
         new_gen.append(check_and_score(
             new_gen[0], target, count, start_time, out_data))
 
         if new_gen[1] == True:
             out_data["fout"].close()
             return
+        else:
+            out_data["function_times"]["check_and_score"]["total"] += time.time() - \
+                func_start
+            out_data["function_times"]["check_and_score"]["indv_times"].append(
+                time.time() - func_start)
 
         # Make new layer for expression percentages
-        #(made before mutation in order to reserve
+        # (made before mutation in order to reserve
         # index 2 for percentages)
         new_gen.append([])
 
         # Mutate the new generation
         for i in range(len(new_gen[0])):
+            func_start = time.time()
             temp = gen_alg_module.mutate(new_gen[0][i], mutation_rate,
-                                         new_gen[1][i], operators, target, out_data)
+                                         new_gen[1][i], operators, target)
+            out_data["function_times"]["mutate"]["total"] += time.time() - \
+                func_start
+            out_data["function_times"]["mutate"]["indv_times"].append(
+                time.time() - func_start)
 
             if len(temp) > 1:
                 mutation_count += 1
@@ -351,14 +348,21 @@ def find_target(trg, length, data):
             new_gen[0][i] = temp[0]
 
         # Recalc scores after mutations
+        func_start = time.time()
         new_gen[1] = check_and_score(
             new_gen[0], target, count, start_time, out_data)
 
         if new_gen[1] == True:
             out_data["fout"].close()
             return
+        else:
+            out_data["function_times"]["check_and_score"]["total"] += time.time() - \
+                func_start
+            out_data["function_times"]["check_and_score"]["indv_times"].append(
+                time.time() - func_start)
 
         for i in new_gen[0]:
+            func_start = time.time()
             new_gen[2] = calc_percents(new_gen[1])
 
         count += 1
