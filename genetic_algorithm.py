@@ -48,7 +48,7 @@ def find_target(trg, length, data):
     count = 1
     operators = ['+', '-', '*', '/']
 
-    out_data["fout"] = open("Data/complete_data(BIG_FILE).txt", 'w')
+    out_data["fout"] = open("Data/complete_data(BIG_FILE).dat", 'w')
 
     out_data["function_times"] = {}
     for i in functions:
