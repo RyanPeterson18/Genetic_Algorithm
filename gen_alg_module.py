@@ -1,4 +1,5 @@
 import random
+import math
 import time
 import pandas as pd
 
@@ -12,18 +13,22 @@ def calc_scores(expressions, target):
     """
 
     scores = []
+    values = []
 
     for expression in expressions:
 
-        if round(eval(expression[:])) == target:
+        value = eval(expression)
+
+        if round(value) == target:
             return True, expression
         else:
-            scores.append(1 / abs(target - eval(expression)))
+            scores.append(1 / abs(target - value))
+            values.append(value)
 
-    return scores, None
+    return scores, values
 
 
-def mutate(expression, rt, score, operators, target):
+def mutate(expression, double rate_cap, double rate_constant, double value, double max_exponent, operators, int target, out_data):
     """
     Creates a list with len(list) <= len(expression) + 1 where a
     different character has been randomized each time from the
@@ -31,9 +36,7 @@ def mutate(expression, rt, score, operators, target):
     one character to be changed
     """
 
-    # Optimize using static types
-    cdef double rate = rt
-    cdef double multiplier
+    cdef double rate
 
     mutation = [expression]
     mutated = False
@@ -41,19 +44,28 @@ def mutate(expression, rt, score, operators, target):
 
     for i in range(len(expression)):
 
-        # determine a multiplier to accelerate or muffle the mutation
-        # multiplier<1 and the rate will be divided by it
-        if score > 1:
-            multiplier = 1
-        elif score < .1:
-            multiplier = 10
-        else:
-            multiplier = 1 / score
+        try:
+            # prevent OverflowError by
+            exponent = -(rate_constant / target) * (value)
+            if exponent > max_exponent:
+                exponent = max_exponent
+            elif exponent < -max_exponent:
+                exponent = -max_exponent
+            # Calculate the actual mutation rate based on the expression's proximity
+            # r = c - (c / (1 + c*e^(-(k/t)*x)))
+            # math.exp(x) is e**x
+            rate = rate_cap - (rate_cap / (1 + rate_cap *
+                                           math.exp(exponent)))
+        except OverflowError:
+            print("rate_cap:", rate_cap, "\nrate_constant:",
+                  rate_constant, "\ntarget:", target, "\nvalue:", value)
+            raise OverflowError("math range error at gen_alg_module.pyx:50")
 
         # decide whether to mutate or not
-        if random.random() <= rate * multiplier:
+        if random.random() <= rate:
             mutated = True
 
+            # mutate
             if i % 2 == 0:
                 alt_exp = (alt_exp[:i] +
                            str(random.randint(1, 9)) +
@@ -64,7 +76,7 @@ def mutate(expression, rt, score, operators, target):
                            alt_exp[i + 1:])
 
             if round(eval(alt_exp)) == target:
-                return mutation
+                return [alt_exp]
 
     if mutated:
         mutation = [alt_exp]
